@@ -1,0 +1,725 @@
+---
+title: "Reproducible example of Predictive modeling of Metabolomics Data"
+author: "Tushar Ghosh"
+date: "4/1/2019"
+output: word_document
+---
+
+```{r}
+## ST000601_AN000920_Results.txt  and ST000601_AN000921_Results.txt
+
+
+
+### Metadata from Metabolomics Workbench
+
+metadata <- read.table("/Users/ghoshtu/Desktop/metadata.txt",
+                       sep="\t", header =T,  stringsAsFactors = F, na.strings = c("NA", "-"))
+
+names(metadata)
+
+metadata[1:2, 1:10]
+## Print some of the attritbutes.
+table(metadata$Gender)
+table(metadata$Smoking.Status)
+table(metadata$Gold.Stage)
+
+
+
+headers_920 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000920_Results.txt",
+                          sep="\t", header =F, nrow=2, stringsAsFactors = F, row.names = 1)[1,]
+#headers_920
+
+headers_921 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000921_Results.txt",
+                          sep="\t", header =F, nrow=2, stringsAsFactors = F, row.names = 1)[1,]
+#headers_921
+
+compound_tmp920 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000920_Results.txt",
+                              sep="\t", header =F, row.names = 1, stringsAsFactors = F, skip=2)
+compound_tmp920[1:10, 1:3]
+
+compound_tmp921 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000921_Results.txt",
+                              sep="\t", header =F, row.names = 1, stringsAsFactors = F, skip=2)
+compound_tmp921[1:10, 1:3]
+
+
+compound920 <- compound_tmp920[, 1:131]
+compound921 <- compound_tmp921[, 1:131]
+row.names(compound920)[1:3]
+row.names(compound921)[1:3]
+colnames(compound920) <- headers_920[1:131]
+
+colnames(compound921) <- headers_921[1:131]
+
+#####
+compound_t920 <- data.frame(t(compound920))
+compound_t920[1:3, 1:3]
+compound_t920$pid <- rownames(compound_t920)
+
+
+
+#sum(compound_t920$pid %in% metadata$Sample.name)
+
+compound_t920[!compound_t920$pid %in% metadata$Sample.name, "pid"]
+metadata[!metadata$Sample.name %in% compound_t920$pid, "Sample.name"]
+
+data_920 <- merge(metadata[ , c("Sample.name", "Gender")], compound_t920, by.x="Sample.name", by.y="pid")
+
+data_920[1, 1:10]
+
+#####
+compound_t921 <- data.frame(t(compound921))
+compound_t921[1:3, 1:3]
+compound_t921$pid <- rownames(compound_t921)
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+nrow(compound_t921)
+
+sum(compound_t921$pid %in% metadata$Sample.name)
+```
+
+```{r}
+compound_t921[!compound_t921$pid %in% metadata$Sample.name, "pid"]
+metadata[!metadata$Sample.name %in% compound_t921$pid, "Sample.name"]
+
+data_921 <- merge(metadata[ , c("Sample.name", "Gender")], compound_t921, by.x="Sample.name", by.y="pid")
+
+data_921[1, 1:10]
+
+####
+data_combined<-cbind(data_920,data_921[,-c(1,2)])
+dim(data_combined)
+
+library(stringr)
+
+split_msrt <- str_split(colnames(data_combined)[3:3001], pattern = fixed("_"), simplify = TRUE, n = 2)
+
+head(split_msrt)
+ret_time<-as.numeric(c(split_msrt[,2]))
+
+split_ms <- str_split(split_msrt[,1], pattern = fixed("X"), simplify = TRUE)
+ms<-as.numeric(c(split_ms[,2]))
+
+data_combined3<-rbind(data_combined,ms,ret_time)
+data_combined3best<-data_combined3
+
+### Metabolomics Workbench (Mass Charge, retention time)
+
+
+
+#Charmion's Data
+#######################################################
+
+
+library(xlsx)
+require(gdata)
+
+dataex<-read.xls("/Users/ghoshtu/Desktop/COPD1.xlsx", sheet=1,header=TRUE)
+#COPD 131 HILIC Pos.xlsx
+library(gdata)
+dataex5<-read.xls("/Users/ghoshtu/Desktop/COPD 131 HILIC Pos2.xlsx", sheet=1,header=TRUE)
+#dim 662, 401
+dataex6<-read.xls("/Users/ghoshtu/Desktop/COPD 131 C18 Pos2.xlsx", sheet=1,header=TRUE)
+#2337,401
+#COPD 131 HILIC Pos.xlsx
+library(DescTools)
+dataex1<-t(dataex)
+#pos=StrPos(x = colnames(dataex), pattern = "13885J")
+
+dataex51<-dataex5[,2:394]
+met51<-array(NA,dim=c(662,131))
+cv51<-array(0,dim=c(662,131))
+
+miss51<-array(0,dim=c(662,131))
+
+for(i in 0:130)
+{
+  for( j in 1:662)
+  {
+    miss51[j,i+1]<-length(which(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i])==0))
+    
+  }
+}   
+for(i in 0:130)
+{
+  for( j in 1:662)
+  {
+    cv51[j,i+1]=sd(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i]))/
+      mean(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i]))
+  }
+}
+
+cv51[, 1:131][cv51[, 1:131] == "NaN"] <- 5000
+head(cv51)
+for(i in 0:130)
+{
+  for( j in 1:662)
+  {
+    
+    
+    if(miss51[j,i+1]==0 && cv51[j,i+1]>=0.5 && cv51[j,i+1]<1000){
+      
+      met51[j,i+1]=median(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i]))
+      
+    } 
+    if(miss51[j,i+1]==0 && cv51[j,i+1]<0.5){
+      
+      met51[j,i+1]=mean(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i]))
+      
+    } 
+    
+    if(miss51[j,i+1]==1 && cv51[j,i+1]<0.5){
+      
+      met51[j,i+1]=mean(c(dataex51[j,2+3*i],dataex51[j,3+3*i],dataex51[j,4+3*i]))
+      
+    }
+    
+  }
+}
+
+met51_mat<-matrix(as.numeric(met51),nrow=662,byrow=F)
+
+head(met51_mat) 
+
+colnames(met51_mat)<-colnames(dataex5)[seq(2,394,3)]
+
+rownames(met51_mat)<-dataex5[,1]
+
+write.table(met51_mat, file="/Users/ghoshtu/Desktop/processed_dataex51.txt", sep="\t", col.names = T, row.names = T)
+writedataex51 <- read.table("/Users/ghoshtu/Desktop/processed_dataex51.txt",
+                            sep="\t", header =T,  stringsAsFactors = F, na.strings = c("NA", "-"))
+
+
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+colnames(writedataex51);rownames(writedataex51)
+```
+
+
+```{r}
+twritedataex51 <-t(writedataex51)
+colnames(twritedataex51);rownames(twritedataex51)
+
+####################################################################################################################################
+
+dataex61<-dataex6[,2:394]
+met61<-array(NA,dim=c(2337,131))
+cv61<-array(0,dim=c(2337,131))
+
+miss61<-array(0,dim=c(2337,131))
+
+for(i in 0:130)
+{
+  for( j in 1:2337)
+  {
+    miss61[j,i+1]<-length(which(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i])==0))
+    
+  }
+}   
+for(i in 0:130)
+{
+  for( j in 1:2337)
+  {
+    cv61[j,i+1]=sd(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i]))/
+      mean(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i]))
+  }
+}
+
+cv61[, 1:131][cv51[, 1:131] == "NaN"] <- 5000
+#head(cv61)
+for(i in 0:130)
+{
+  for( j in 1:2337)
+  {
+    
+    
+    if(miss61[j,i+1]==0 && cv61[j,i+1]>=0.5 && cv61[j,i+1]<1000){
+      
+      met61[j,i+1]=median(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i]))
+      
+    } 
+    if(miss61[j,i+1]==0 && cv61[j,i+1]<0.5){
+      
+      met61[j,i+1]=mean(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i]))
+      
+    } 
+    
+    if(miss61[j,i+1]==1 && cv61[j,i+1]<0.5){
+      
+      met61[j,i+1]=mean(c(dataex61[j,2+3*i],dataex61[j,3+3*i],dataex61[j,4+3*i]))
+      
+    }
+    
+  }
+}
+
+met61_mat<-matrix(as.numeric(met61),nrow=2337,byrow=F)
+
+head(met61_mat) 
+
+colnames(met61_mat)<-colnames(dataex6)[seq(2,394,3)]
+
+rownames(met61_mat)<-dataex6[,1]
+
+write.table(met61_mat, file="/Users/ghoshtu/Desktop/processed_dataex61.txt", sep="\t", col.names = T, row.names = T)
+
+writedataex51 <- read.table("/Users/ghoshtu/Desktop/processed_dataex51.txt",
+                            sep="\t", header =T,  stringsAsFactors = F, na.strings = c("NA", "-"))
+
+writedataex61 <- read.table("/Users/ghoshtu/Desktop/processed_dataex61.txt",
+                            sep="\t", header =T,  stringsAsFactors = F, na.strings = c("NA", "-"))
+
+#colnames(writedataex61);rownames(writedataex61)
+#colnames(writedataex51);rownames(writedataex51)
+twritedataex51 <-t(writedataex51)
+twritedataex61 <-t(writedataex61)
+#colnames(twritedataex51);rownames(twritedataex51)
+#colnames(twritedataex61);rownames(twritedataex61)
+
+# Add datasets horizontally
+processed<-cbind(twritedataex61,twritedataex51)
+
+#rownames(data_combined2)=substr(rownames(processed), nchar(rownames(processed))-5,
+                       #         nchar(rownames(processed)))
+#colnames(data_combined2)=colnames(processed)
+#dim(data_combined2)
+#data_combined2[1:5,1:5]
+
+msrt_Charmion<-rbind(dataex6[,c(396,397)],dataex5[,c(396,397)])
+dim(msrt_Charmion)
+tran_msrt_Charmion<-t(msrt_Charmion)
+
+data_combined4<-rbind(processed,tran_msrt_Charmion)
+
+
+###### Final merging
+
+rownames(data_combined3)=rownames(data_combined4)
+data_combined31<-data.frame(data_combined3)
+#head(data_combined31)
+data_combined3<-data.frame(data_combined3[,-c(1,2)])
+data_combined3[133,]=ret_time
+mw_rt<-c(data_combined3[133,])
+data_combined4<-data.frame(data_combined4)
+Charmion_rt<-msrt_Charmion[,2]
+length(unique(mw_rt))
+#ret_time<-unique(ret_time)
+#Charmion_rt<-unique(Charmion_rt)
+#pos_mwrt<-unlist(lapply(ret_time, function(x) which(Charmion_rt %in% x)))
+#pos_mwrt<-which(Charmion_rt %in% ret_time)
+
+pos_mwrt<-match(ret_time,Charmion_rt)
+annotated_met<-colnames(processed)[c(pos_mwrt)]
+annotated_combined_data<-rbind(data_combined3,annotated_met)                        
+annotated_combined_data[1:10,1:10]
+annotated_combined_data[125:134,2000:2010]
+
+annotated_gender<-data_combined31[,2]
+data_all3<-data.frame(cbind(annotated_gender[1:131],annotated_combined_data[-c(132,133,134),]))
+
+library(cwhmisc)
+colnames(data_all3)[1]<-"Gender"
+colnames(data_all3)[2:3000]<-annotated_met
+#colnames(data_all3)[2:3000]<-2:3000
+
+
+library(randomForest)
+library(mlbench)
+library(caret)
+library(e1071)
+library(parallel)
+library(doParallel)
+
+
+metadata <- read.table("/Users/ghoshtu/Desktop/metadata.txt",
+                       sep="\t", header =T,  stringsAsFactors = F, na.strings = c("NA", "-"))
+
+names(metadata)
+
+metadata[1:2, 1:10]
+
+table(metadata$Gender)
+table(metadata$Smoking.Status)
+table(metadata$Gold.Stage)
+
+
+
+headers <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000920_Results.txt",
+                      sep="\t", header =F, nrow=2, stringsAsFactors = F, row.names = 1)[1,]
+#headers
+
+compound_tmp1 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000920_Results.txt",
+                           sep="\t", header =F, row.names = 1, stringsAsFactors = F, skip=2)
+compound_tmp2 <- read.table("/Users/ghoshtu/Desktop/ST000601_AN000921_Results.txt",
+                            sep="\t", header =F, row.names = 1, stringsAsFactors = F, skip=2)
+colnames(compound_tmp1)<-colnames(compound_tmp2)
+compound_tmp<-rbind(compound_tmp1,compound_tmp2)
+
+compound_tmp[1:10, 1:3]
+
+#ncol(compound_tmp)
+#nrow(compound_tmp)
+
+compound <- compound_tmp[, 1:131]
+
+row.names(compound)[1:3]
+
+colnames(compound) <- headers[1:131]
+
+compound[1:10, 1:3]
+
+compound_t <- data.frame(t(compound))
+compound_t[1:3, 1:3]
+compound_t$pid <- rownames(compound_t)
+
+#nrow(compound_t)
+
+sum(compound_t$pid %in% metadata$Sample.name)
+
+compound_t[!compound_t$pid %in% metadata$Sample.name, "pid"]
+metadata[!metadata$Sample.name %in% compound_t$pid, "Sample.name"]
+
+data_all <- merge(metadata[ , c("Sample.name", "Gender")], compound_t, by.x="Sample.name", by.y="pid")
+
+data_all[1, 1:10]
+data_all2=data_all[,-1]
+#colnames(data_a)[colnames(data)=="old_name"] <- "new_name"
+attach(data_all2)
+Gender[Gender==1]="X1"
+Gender[Gender==2]="X2"
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(data_all2)
+```
+
+```{r}
+# Load Dataset
+
+library(caret)
+############### Randomly Split the data in to training and testing
+set.seed(2000)
+trainIndex <- createDataPartition(Gender, p = 0.7, list = FALSE, times = 1)
+trainDf <- data_all2[trainIndex, ]
+testDf <- data_all2[-trainIndex, ]
+
+#trainDf$Gender[trainDf$Gender==1]="X1"
+#trainDf$Gender[trainDf$Gender==2]="X2"
+## Over-sampling for imbalanced data:
+
+
+#M<-length(which(trainDf2$Gender ==2))
+#print(M)
+#F<-length(which(trainDf2$Gender ==1))
+#print(F)
+#train_x2<-subset(trainDf2, (trainDf2$Gender ==2))
+#over_sampleM<-train_x2[sample(nrow(train_x2), 11), ]
+#trainDf<-data.frame(rbind(trainDf2,over_sampleM))
+
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+
+attach(trainDf)
+```
+
+
+```{r}
+#cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+#control <- trainControl(method = "cv", number = 10, classProbs = TRUE, 
+ #                    summaryFunction = twoClassSummary,allowParallel = TRUE)
+set.seed(2000)
+control <- trainControl(method = "cv", number = 5, classProbs = TRUE, 
+                        summaryFunction = twoClassSummary)
+
+#as.character(data_all2$Gender) <- list(no="1", yes="2") 
+#fit.rf <- train(make.names(Gender)~ ., data = cbind(trainDf,trainDf3[,-1],trainDf4[,-1],trainDf5[,-1],trainDf6[,-1]),
+ #method = "svmRadial", trControl = control, metric = "ROC")
+#colnames(trainDf)<- 2:3000
+#colnames(trainDf)<-as.factor(annotated_met)
+set.seed(2000)
+fit.rf <- train(make.names(Gender)~ ., data = trainDf,
+method = "rf", trControl = control, metric = "ROC")
+#stopCluster(cluster)
+#registerDoSEQ()
+print(Sys.time())
+
+ max(fit.rf$results$ROC)  # AUC
+ fit.rf$results$Sens[which.max(fit.rf$results$ROC)]  # sen
+ fit.rf$results$Spec[which.max(fit.rf$results$ROC)]  # spec
+```
+ 
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(testDf)
+```
+
+```{r}
+ #colnames(testDf)[2:3000]=2:3000
+ testDf$Gender[testDf$Gender==1]="X1"
+ testDf$Gender[testDf$Gender==2]="X2"
+# Model Testing
+ set.seed(2000)
+rfClasses <- stats::predict(fit.rf, newdata = testDf, type = "prob")
+rfClasses1 <- stats::predict(fit.rf, newdata = testDf)
+rfConfusion <- confusionMatrix(data = rfClasses1, as.factor(testDf$Gender))
+
+library(pROC)
+rf.ROC <- roc(predictor = rfClasses[["X1"]], response = as.factor(testDf$Gender), 
+              levels = rev(levels(as.factor(testDf$Gender))))
+
+ as.numeric(rf.ROC$auc)  # AUC
+ rfConfusion$byClass[1]  # SENS
+ rfConfusion$byClass[2]  # SPEC
+rfConfusion$overall[1]  # accuracy
+rfConfusion$byClass[5]  # precision
+rfConfusion$byClass[6]  # recall = sens
+
+#plot.roc(rf.ROC, col = "red", cex.lab = 1,asp = NA)
+library(vip)
+vip(vi(fit.rf), num_features = 5)
+
+library(vip)
+
+varImp(fit.rf)
+plot(varImp(fit.rf),top=5, xlab="Importance (RF)")
+###############
+
+vip5.rf <- c(unique(vi(fit.rf))[1:10,2])
+dvip5.rf<-data.frame(vi(fit.rf)[1:10,])
+
+split_rf <- str_split(c(dvip5.rf[,1]), pattern = fixed("_"), simplify = TRUE)
+
+head(split_rf)
+v.rf<-data.frame(as.numeric(split_rf[,2]),vip5.rf$Importance)
+
+v.rf<-v.rf[!duplicated(v.rf[,c(1)]),]
+ret_rf<-v.rf[1:5,1]
+vip.rfs<-v.rf[1:5,2]
+
+
+annotated_rf.ind<-array(0,dim=c(5))
+for(i in 1:5)
+{
+annotated_rf.ind[i]=which(c(unique(as.numeric(data_combined3best[133,])))==ret_rf[i])
+}
+
+# barchart with added parameters
+
+par(mai=c(1,4.3,0.5,0.3))
+barplot(rev(vip.rfs),
+        xlab = "(a) Importance (RF)",
+        names.arg = rev(c(annotated_met[c(annotated_rf.ind)])),
+        #col = "darkred",
+        horiz = TRUE,las=1,cex.names=1)
+
+
+#### SVM
+```
+
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(trainDf)
+```
+
+
+```{r}
+#cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+#control <- trainControl(method = "cv", number = 10, classProbs = TRUE, 
+#                    summaryFunction = twoClassSummary,allowParallel = TRUE)
+set.seed(2000)
+control <- trainControl(method = "cv", number = 5, classProbs = TRUE, 
+                        summaryFunction = twoClassSummary)
+
+#as.character(data_all2$Gender) <- list(no="1", yes="2") 
+#fit.svm <- train(make.names(Gender)~ ., data = cbind(trainDf,trainDf3[,-1],trainDf4[,-1],trainDf5[,-1],trainDf6[,-1]),
+#method = "svmRadial", trControl = control, metric = "ROC")
+#colnames(trainDf)<- 2:3000
+#colnames(trainDf)<-as.factor(annotated_met)
+set.seed(2000)
+fit.svm <- train(make.names(Gender)~ ., data = trainDf,method = "svmRadial",
+                 trControl = control, metric = "ROC")
+#stopCluster(cluster)
+#registerDoSEQ()
+print(Sys.time())
+
+max(fit.svm$results$ROC)  # AUC
+fit.svm$results$Sens[which.max(fit.svm$results$ROC)]  # sen
+fit.svm$results$Spec[which.max(fit.svm$results$ROC)]  # spec
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(testDf)
+```
+
+```{r}
+#colnames(testDf)[2:3000]=2:3000
+testDf$Gender[testDf$Gender==1]="X1"
+testDf$Gender[testDf$Gender==2]="X2"
+# Model Testing
+set.seed(2000)
+svmClasses <- stats::predict(fit.svm, newdata = testDf, type = "prob")
+svmClasses1 <- stats::predict(fit.svm, newdata = testDf)
+svmConfusion <- confusionMatrix(data = svmClasses1, as.factor(testDf$Gender))
+
+library(pROC)
+svm.ROC <- roc(predictor = svmClasses[["X1"]], response = as.factor(testDf$Gender), 
+               levels = rev(levels(as.factor(testDf$Gender))))
+
+as.numeric(svm.ROC$auc)  # AUC
+svmConfusion$byClass[1]  # SENS
+svmConfusion$byClass[2]  # SPEC
+svmConfusion$overall[1]  # accuracy
+svmConfusion$byClass[5]  # precision
+svmConfusion$byClass[6]  # recall = sens
+
+#add to svm
+
+
+#plot.roc(svm.ROC, col = "red", cex.lab = 1,asp = NA)
+library(vip)
+vip(vi(fit.svm), num_features = 5)
+
+library(vip)
+
+varImp(fit.svm)
+plot(varImp(fit.svm),top=5, xlab="Importance (svm)")
+###############
+
+vip5.svm <- c(unique(vi(fit.svm))[1:10,2])
+dvip5.svm<-data.frame(vi(fit.svm)[1:10,])
+
+split_svm <- str_split(c(dvip5.svm[,1]), pattern = fixed("_"), simplify = TRUE)
+
+head(split_svm)
+v.svm<-data.frame(as.numeric(split_svm[,2]),vip5.svm$Importance)
+
+v.svm<-v.svm[!duplicated(v.svm[,c(1)]),]
+ret_svm<-v.svm[1:5,1]
+vip.svms<-v.svm[1:5,2]
+
+
+annotated_svm.ind<-array(0,dim=c(5))
+for(i in 1:5)
+{
+  annotated_svm.ind[i]=which(c(unique(as.numeric(data_combined3best[133,])))==ret_svm[i])
+}
+
+# barchart with added parameters
+
+par(mai=c(1,4.3,0.5,0.3))
+barplot(rev(vip.svms),
+        xlab = "(b) Importance (SVM)",
+        names.arg = rev(c(annotated_met[c(annotated_svm.ind)])),
+        #col = "darkred",
+        horiz = TRUE,las=1,cex.names=1)
+
+
+```
+
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(trainDf)
+```
+
+
+```{r}
+#cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+#control <- trainControl(method = "cv", number = 10, classProbs = TRUE, 
+#                    summaryFunction = twoClassSummary,allowParallel = TRUE)
+set.seed(2000)
+control <- trainControl(method = "cv", number = 5, classProbs = TRUE, 
+                        summaryFunction = twoClassSummary)
+
+#as.character(data_all2$Gender) <- list(no="1", yes="2") 
+#fit.plsda <- train(make.names(Gender)~ ., data = cbind(trainDf,trainDf3[,-1],trainDf4[,-1],trainDf5[,-1],trainDf6[,-1]),
+#method = "svmRadial", trControl = control, metric = "ROC")
+#colnames(trainDf)<- 2:3000
+#colnames(trainDf)<-as.factor(annotated_met)
+set.seed(2000)
+fit.plsda <- train(make.names(Gender)~ ., data = trainDf,
+                   method = "pls", trControl = control, metric = "ROC")
+#stopCluster(cluster)
+#registerDoSEQ()
+print(Sys.time())
+
+max(fit.plsda$results$ROC)  # AUC
+fit.plsda$results$Sens[which.max(fit.plsda$results$ROC)]  # sen
+fit.plsda$results$Spec[which.max(fit.plsda$results$ROC)]  # spec
+
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+attach(testDf)
+```
+
+```{r}
+#colnames(testDf)[2:3000]=2:3000
+testDf$Gender[testDf$Gender==1]="X1"
+testDf$Gender[testDf$Gender==2]="X2"
+# Model Testing
+set.seed(2000)
+plsdaClasses <- stats::predict(fit.plsda, newdata = testDf, type = "prob")
+plsdaClasses1 <- stats::predict(fit.plsda, newdata = testDf)
+plsdaConfusion <- confusionMatrix(data = plsdaClasses1, as.factor(testDf$Gender))
+
+library(pROC)
+plsda.ROC <- roc(predictor = plsdaClasses[["X1"]], response = as.factor(testDf$Gender), 
+                 levels = rev(levels(as.factor(testDf$Gender))))
+
+as.numeric(plsda.ROC$auc)  # AUC
+plsdaConfusion$byClass[1]  # SENS
+plsdaConfusion$byClass[2]  # SPEC
+plsdaConfusion$overall[1]  # accuracy
+plsdaConfusion$byClass[5]  # precision
+plsdaConfusion$byClass[6]  # recall = sens
+
+## add to plsda
+
+#plot.roc(plsda.ROC, col = "red", cex.lab = 1,asp = NA)
+library(vip)
+vip(vi(fit.plsda), num_features = 5)
+
+library(vip)
+
+varImp(fit.plsda)
+plot(varImp(fit.plsda),top=5, xlab="Importance (plsda)")
+###############
+
+vip5.plsda <- c(unique(vi(fit.plsda))[1:10,2])
+dvip5.plsda<-data.frame(vi(fit.plsda)[1:10,])
+
+split_plsda <- str_split(c(dvip5.plsda[,1]), pattern = fixed("_"), simplify = TRUE)
+
+head(split_plsda)
+v.plsda<-data.frame(as.numeric(split_plsda[,2]),vip5.plsda$Importance)
+
+v.plsda<-v.plsda[!duplicated(v.plsda[,c(1)]),]
+ret_plsda<-v.plsda[1:5,1]
+vip.plsdas<-v.plsda[1:5,2]
+
+
+annotated_plsda.ind<-array(0,dim=c(5))
+for(i in 1:5)
+{
+  annotated_plsda.ind[i]=which(c(unique(as.numeric(data_combined3best[133,])))==ret_plsda[i])
+}
+
+# barchart with added parameters
+
+par(mai=c(1,2.5,0.5,0.3))
+barplot(rev(vip.plsdas),
+        xlab = "(c) Importance (PLS-DA)",
+        names.arg = rev(c(annotated_met[c(annotated_plsda.ind)])),
+        #col = "darkred",
+        horiz = TRUE,las=1,cex.names=1)
+
+par(mar = c(4, 4, 4, 4)+.1)
+plot.roc(rf.ROC, cex.lab = 1,lty=1,asp = NA)
+plot.roc(svm.ROC, cex.lab = 1,lty=11,asp = NA,add=TRUE)
+plot.roc(plsda.ROC, cex.lab = 1,lty=21,pch=18, asp = NA,add=TRUE)
+legend(0.4, 0.4, legend = c("RF", "SVM", "PLS-DA"), lty = c(1,11,21), cex = 1)
+
+
+```
+
