@@ -1,0 +1,928 @@
+---
+title: "Intro To R Notebook"
+author: "Steve Pittard"
+output:
+  word_document: default
+  number_sections: yes
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# Supplemental Notebook - Into To R
+
+The R language is an open source implementation created by Ross Ihaka and Robert Gentleman based on the S programming language which was originally created at AT&T Bell Laboratories. R provides an interactive environment for data manipulation, visualization, and statistical computing that includes strong support for programming constructs and robust input and output capabilities. R is extensible via the “package” mechanism which facilitates the development of user-contributed code to flexibly supplement the language. The Comprehensive Archive Network (CRAN) offers 14,348 contributed packages across 40 domains including Machine Learning, Genetics, and High Performance Computing. Moreover, the Bioconductor project provides access to 1,436 packages developed specifically for the management and exploration of high-throughput genomic data. 
+
+R provides the intuitive data frame structure that simplifies the manipulation of data by end users with little programming experience. R allows for the easy creation of reproducible research documents and can also be tightly integrated with the Github service for the development of code for reuse, collaboration, and distribution. The language benefits from enthusiastic user support and a highly motivated  community of developers, statisticians, researchers, and data scientists. R is available as Free Software under the terms of the Free Software Foundation’s GNU General Public License. It is available for use on Microsoft Windows, Apple OSX, and Linux operating systems.  
+
+
+##  Installation
+
+The R project website has single click installers for Microsoft Windows, Apple OSX, and Linux (in the form of packages) which are designed to provide the base R interactive environment, programming, language, graphics capability, and a foundational set of statistical functions. The default R installations on Windows and OSX includes a basic GUI in addition to the customary command line access. Proceed to https://cran.r-project.org/ for a list of installers appropriate for your system. In some cases there is a need to build / compile the R code from source code in which case the raw source is also available from the CRAN site. The home page for the R project https://www.r-project.org/ contains a number of documentation and informational resources that describe current events and initiatives as well as the driving philosophy behind the project. 
+
+##  Understanding Packages
+
+A default installation of R is comprised of a small set of foundational or core packages which offer basic functionality in terms of data manipulation, statistical tests, analysis, and visualization. The following command will list the core set of packages associated with version 3.5.3 of R. Note that this default package set is usually stable across versions of R. 
+
+```{r load, eval=FALSE}
+getOption("defaultPackages")
+[1] "datasets"  "utils"     "grDevices" "graphics"  "stats"     "methods"  
+
+# Get more help on the “stats” package
+
+> library(help="stats")
+Description:
+
+Package:            stats
+Version:            3.5.3
+Priority:           base
+Title:              The R Stats Package
+Author:             R Core Team and contributors worldwide
+Maintainer:         R Core Team <R-core@r-project.org>
+Description:        R statistical functions.
+License:            Part of R 3.5.3
+```
+
+The **search()** function will display all currently loaded packages which by default should be the same as given above. However to load a package one should use the **library()** function to load a specific package.  The currently loaded packages are:
+
+```{r eval=FALSE}
+search()
+[1] ".GlobalEnv"        "package:stats"     "package:graphics" 
+[4] "package:grDevices" "package:utils"     "package:datasets" 
+[7] "package:methods"   "Autoloads"         "package:base" 
+
+```
+
+Next, load the lattice graphics package and re run the **search()** command. The currently loaded packages now reflect the newly loaded package
+
+```{r search,eval=FALSE}
+library(lattice)
+
+search()
+ [1] ".GlobalEnv"        "package:lattice"   "package:stats"    
+ [4] "package:graphics"  "package:grDevices" "package:utils"    
+ [7] "package:datasets"  "package:methods"   "Autoloads"        
+[10] "package:base"
+```
+
+
+Note that this implies that R has functions that are not automatically loaded when R is started although one could create a file called **.Rprofile** (note the period in front of Rprofile)  within the folder wherein R is being executed. Here is an example:
+
+```{r eval=FALSE}
+# My .Rprofile 
+
+.First <- function(){
+ library(lattice)
+}
+
+.Last <- function(){ 
+ cat("\nGoodbye at ", date(), "\n")
+}
+```
+
+###  Installing New Packages
+
+When reviewing publications it can frequently be observed that authors have developed an accompanying package which contains functions developed as part of the research and used to generate the final results.  Typically, the package will be made available in CRAN or on Github although it us up to the developer to make that determination. CRAN has an index for thousands of packages, so when contemplating the development of one or more functions, first consider searching CRAN at https://cran.r-project.org/search.html  (or use Google) to see if someone has created a package to address the problem. Once you have located a package of interest then use the **install.packages()** function which will first download the package from CRAN and then install the package locally. As an example, the following will install the actuar package on the local system:
+
+
+```{r eval=FALSE}
+install.packages("actuar")
+Installing package into ‘/Users/esteban/r_packages’
+(as ‘lib’ is unspecified)
+--- Please select a CRAN mirror for use in this session ---
+trying URL 'https://mirrors.nics.utk.edu/cran/bin/macosx/el-capitan/contrib/3.5/actuar_2.3-1.tgz'
+Content type 'application/x-gzip' length 2044668 bytes (1.9 MB)
+==================================================
+downloaded 1.9 MB
+The downloaded binary packages are in
+/var/folders/wh/z0v5hqgx3dzdfgbr_3w0000gn/T//Rtmpy1m6A7/downloaded_packages
+
+library(actuar)
+```
+
+
+
+Some of the R Interface Development Environments, such as RStudio, have GUI capabilities to manage the installation, update, and removal of packages. 
+
+###  Bioconductor
+
+Bioconductor is managed separately from CRAN so the installation of packages involves a different process due to the way Bioconductor packages are developed. However, it is relatively straightforward to manage Bioconductor them. The following commands will install a minimal set of Bioconductor packages locally. The first statement checks to see if the **BiocManager** package is already installed. If not then it downloads and installs it. The next statement will install a base set of packages. If there is a previous version of Bioconductor already installed, the BiocManager package will ask if it should be updated. 
+
+```{r wval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+     install.packages("BiocManager")
+
+BiocManager::install()
+```
+
+To install a specific package from the Bioconductor collection, supply the name (or names) of the package(s) you wish to install locally. It is possible to install more than one package at a time by supplying a vector with the names of the desired packages
+
+
+```{r xcms,eval=FALSE}
+BiocManager::install("xcms") # Install the xcms package 
+BiocManager::install(c("xcms","GenomicFeatures"))
+```
+
+
+## Getting Help In R
+
+A good starting place for assistance is the “Getting Help” page at https://www.r-project.org/help.html which describes the basic steps to learning more about the language and how to walk through demonstrations of various functions and packages. This site also make references to FAQs (Frequently Asked Questions) for the R language as well as Microsoft Windows and Apple OSX implementations of R. Most first time users either do not know (or simply avoid) reading the supplied manual pages which is specifically why R contains the **browseVignettes()** command which provides an easy to read web page listing of all the vignettes / guided tours associated with a given package. Here is some excerpted output:
+
+
+```{r eval=FALSE}
+browseVignettes() 
+```
+
+
+##  Integrated Development Environments (IDEs) for R
+
+R can be optionally paired with several other IDEs such as Eclipse StatET,  Microsoft R Tools for Visual Studio, Tinn-R (for Windows only), and RStudio. The advantage of using an IDE is to obtain support for debugging, syntax checking, command history, embedded documentation, and general work space management. Use of  an IDE is completely optional although it eases use of R especially for newcomers to data analysis using a new language. While it is entirely possible to execute R using the built in GUI (for Windows or OSX) or within a “terminal”, many researchers and developers prefer the convenience and support offered by an IDE. Unless otherwise noted, none of the examples given below assume or require the use of a specific IDE. 
+
+
+## Everything is An Object
+
+When learning R it is frequently the case that newcomers are following a vignette or tutorial which involves creating or loading structures such as data frames, vectors, and functions though it is not always apparent how to determine the nature of an object.  In R, everything is an object, which has a type and belongs to a class. There are helper functions (which are themselves objects) that will help determine the structure of a given object. The **str()** function does a good job of telling you what the type and structure of an object is. Frequent use of the **str()** function will greatly assist your understanding of the R language. Note that the “#” character is used to signal a comment in R. Everything following this character will be ignored by the R interpreter. 
+
+```{r}
+data(mtcars)     # Load the mtcars data frame
+head(mtcars,2)   # List the first two rows of this structure
+
+# Use the str() function to determine what we have. 
+
+str(mtcars)
+```
+
+The **str()** function accepts an option to provide a more compact summary of an object. The **str()** function can also be used on functions such as the built in **t.test()** function:
+
+```{r}
+str(mtcars,max.level=0)
+
+str(t.test)
+```
+
+## Variables
+
+There are four primary variable classes in R that provide a foundation for data management and manipulation: numeric, character, logical and factor. Variables are assigned using the symbol <- or = characters however the former is strongly preferred. 
+
+
+```{r}
+A <- 2.5    # The "<-" is the preferred method of assignment
+
+A = 2.5   # This is equivalent to the above although using the "=" is
+            # strongly discouraged except when setting function arguments.
+A
+
+X <- 1
+
+# Variable names are case sensitive.
+
+mynewvar <- X + 3
+
+MYNEWVAR <- X + 3    # Two different variables
+```
+
+Some basic rules relative to variables in R include the following:
+
+  * R has several one-letter reserved words: c, q, s, t, C, D, F, I, T so do not attempt to create variables with these names 
+  * Variables cannot begin with the period “.” character
+  * Variable names are case sensitive, so “myvar” is different from“Myvar” 
+  * Variable names cannot begin with numbers or symbols (%,$, -) 
+  * Variable names cannot contain spaces in the name (”my var”) 
+  
+  
+### A Tour of Variable Types
+
+In data analysis, one rarely uses single valued variables as a starting point although these examples are useful to build an understanding of how R manages differing data types at a basic level. The following examples relate to the numeric type. Remember that R is largely an interactive environment that retains variables and data structures during the session and, optionally, across sessions. The interpreter accepts input after the “>” character.
+
+
+```{r}
+var1 <-3
+
+var1
+
+sqrt(var1)
+
+var1 <- 33.3
+
+str(var1)
+
+var1 + var1
+
+var1 * var1
+
+
+```
+
+
+### Characters 
+
+Character strings usually represent qualitative variables. Many R functions will automatically convert character variables into factors which is another data type used in statistical analysis. Factors will be explained later in the text. Being able to manipulate character strings is important since columns in data sets are described using character labels that frequently must be normalized or transformed prior to downstream analysis. 
+
+```{r}
+var.one <- "Hello there ! My name is Steve."
+
+var.two <- "How do you do ?"
+
+var.one
+
+nchar(var.one) # Determine the number of characters present
+
+toupper(var.one)
+```
+
+
+The following example demonstrates how easy it is to take an example study identifier and split it up into separate fields as a means to locate just the date of birth. There are multiple approaches to getting this information with **strsplit()** being one of them
+
+```{r}
+patientid <- "ID:011472:M:C" # Encodes Birthday, Gender, and Race
+
+patientid
+
+bday <- strsplit(patientid, ":")[[1]][2] # Get just the birthday
+bday
+
+```
+
+
+###  Logical 
+
+Logical variables are those that take on a TRUE or FALSE value. Either by direct assignment or, more typically, as the result of some comparison within a programming context. 
+
+```{r}
+some.variable <- TRUE     # Directly assign a value of TRUE
+
+some.variable
+
+some.variable <- (4 < 5)  # Is 4 less than 5 ?
+
+some.variable
+```
+
+Note that the following is equivalent to the above. Enclosing an R statement within parenthesis will print out the value of that statement.
+
+```{r}
+(some.variable <- (4 < 5 ))
+```
+
+Logicals are extremely important especially when using if-statements as part of writing functions 
+
+
+```{r}
+my.var <- ( 4 < 5)
+if (my.var) {
+    print("four is less than five")
+}
+
+if (! my.var ) {
+    print("four is greater than five")
+}
+```
+
+Logical operators are used to link smaller comparisons. For example, the & character is the logical AND operator. In the following statement both expressions on either side of the AND operator need to be TRUE for my.var to be TRUE. The logical OR operator is the | character. Only one of the expressions on either side of the OR operator needs to be TRUE for my.var to be TRUE 
+
+```{r}
+my.var <- (4 < 5) & (4 < 6) # & is the "AND" operator
+
+my.var
+
+
+my.var <- (4 < 5) | ( 4 < 6 ) # Logical OR operator
+
+my.var
+```
+
+
+## Essential Data Structures 
+
+There are four fundamental data structures in R that are important to know: vectors, lists, matrices and data frames. The latter two are examples of “rectangular data” structures which are very common in data analysis. All of these data structures are constructed using variables of the types previously discussed (numeric, character, or logical). 
+
+### Vectors
+
+Vectors can be though as a collection of values of identical type. In fact, vectors are required to be of a homogeneous type. Vectors can be explicitly created using the “c” function or the can be returned from other R functions. 
+
+```{r}
+1:5  # Create a vector from 1, 2, 3, 4, 5
+
+rnorm(8)   # Generate 8 random values from a Normal Distribution
+
+y <- 1:10 # A vector with 10 elements (1 .. 10)
+
+# Same as above yet using the "c" function
+y <- c(1,2,3,4,5,6,7,8,9,10) 
+
+```
+
+
+Consider the following example which simulates the collection of height measurements of eight people. Vectors are ideal for containing this information. This example will also introduce bracket notation is the key to working with vectors. 
+
+
+```{r}
+height <- c(59,70,66,72,62,66,60,60) # create a vector of 8 heights
+
+height[1:5] # Get first 5 elements
+
+height[5:1] # Get first 5 elements in reverse
+
+height[-1] # Get all but first element
+
+height[-1:-2] # Get all but first two elements
+
+height[c(1,5)] # Get just first and fifth elements
+
+```
+
+The bracket notation allows for the use of logical expressions (and combinations thereof) to determine which elements satisfy certain conditions. Consider the following:
+
+```{r}
+# Find values between 60 and 70
+height[height > 60 & height < 70]
+
+# Find heights between 60 and 70 inclusive
+height[height > 60 & height <= 70]
+
+# Find heights less than 60 or greater than 70
+height[height < 60 | height > 70]
+```
+
+
+Vectors exist, in part, to help avoid having to write“ for loops” every time a vector needs to be evaluated or computed against. Compare the following two approaches to finding the values between 60 and 70. The first approach leverages the power of vectors. The second approach employs a traditional for loop structure which is more verbose and, for large vectors, inefficient.
+
+
+```{r}
+height[height > 60 & height < 70]
+
+# As opposed to this
+for (ii in 1:length(height)) {
+   if (height[ii] > 60 & height[ii] < 70) {
+      print(height[ii])
+   }
+}
+
+```
+
+
+There are a number of functions in the R that accept vectors as input and can return results quite efficiently. The following examples demonstrate the ease with which the collection of values in the vector can be computed against.
+
+```{r}
+weight <- c(117,165,139,142,126,151,120,166) # weight (in lbs)
+
+weight/100
+
+sqrt(weight)
+
+mean(weight)
+
+sum((weight-mean(weight))^2)/(length(weight)-1) # The variance formula
+ 
+var(weight)
+```
+
+
+
+Vectors can be combined, compared, and evaluated for relationships such as correlation and covariance:
+
+```{r}
+height <- c(59,70,66,72,62,66,60,60)
+
+weight <- c(117,165,139,142,126,151,120,166)
+
+cor(height,weight) # Are they correlated ?
+
+plot(weight,height,main="Height & Weight Plot") # Do a X/Y plot
+
+res <- lm(height ~ weight) # Do a linear regression
+
+abline(res) # Check out the regression line
+```
+
+
+
+
+Character vectors can also be used to create tables
+
+```{r}
+gender <- c("F","M","F","M","F","M","F","M") # Get their gender
+
+smoker <- c("N","N","Y","Y","Y","N","N","N") # Do they smoke ?
+
+table(gender,smoker) # Let's count them smoker 
+
+prop.table(table(gender,smoker))
+
+library(lattice)
+
+barchart(table(gender,smoker), auto.key=TRUE, main="Smoking M/F")
+```
+
+ ### Factors
+ 
+R supports factors which are a special data type for managing categories of data. Identifying categorical variables is usually straightforward. These are the variables by which you might want to summarize continuous data. For example, it might be useful to know if the mean Miles Per Gallon (MPG) of 4 cylinder cards differs significantly from the mean MPG of 6 and 8 cylinder cars. Storing data as factors insures that R modeling functions will treat such data correctly. Assume that there is some automobile data which indicates if a car has an automatic transmission (0) or a manual transmission (1). We store this into a vector called
+transvec 
+
+```{r}
+transvec <- c(1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1)
+
+table(transvec)
+```
+
+
+For visualization and analysis it would be more convenient to represent this information with meaningful labels. The intent is to convert this vector to a factor which will preserve the underlying 0,1 values while applying the labels specified in the labels option. 
+
+```{r}
+mytransfac <- factor(transvec, levels = c(0,1), labels = c("Auto","Man") )
+
+# Now convert the vector to a factor
+
+levels(mytransfac)
+ 
+mytransfac
+```
+
+
+### Matrices
+
+Matrices can be thought of as an extension of the vector concept as all rows and columns of a matrix must be of the same type ("numeric" or "character") although there are packages that allow for more sophisticated matrix constructs. Consider the following vector with nine random elements from a normal distribution:
+
+```{r}
+set.seed(123) # Makes this example reproducible
+
+mymatrix <- rnorm(9)
+
+mymatrix
+```
+
+The **dim()** function can be used to impose a matrix structure onto this vector. In this case the result will be a matrix with three rows and three columns. The product of the values used in the call to the **dim()** function must match the length of the vector to which it is applied:
+
+```{r}
+dim(mymatrix) <- c(3,3)
+mymatrix
+```
+
+Another way to create matrices involves use of the **matrix()** function which accepts a vector and options to indicate the desired number of rows and columns:
+
+```{r}
+set.seed(123) # Makes this example reproducible
+mymatrix <- matrix(rnorm(9),nrow=3,ncol=3)
+mymatrix
+```
+
+
+Indexing into matrices involves use of the bracket notation introduced in the discussion on vectors. Specify the desired row or column:
+
+```{r}
+set.seed(123)
+newmat <- matrix(rnorm(9),nrow=3) # Get a 3x3 matrix
+newmat
+```
+
+
+Given that there are two dimensions, one must specify indices within the brackets that correspond to the desired row and column. Omitting an index implies that all rows or columns are desired. An example will help solidify this idea
+
+```{r}
+newmat[1,1]  # First row and first column
+
+newmat[1,]  # First row and all columns
+
+newmat[,1]  # First column and all rows
+
+newmat[1:2,]  # First two rows 
+```
+
+
+The bracket notation can be used to find elements that satisfy logical conditions. This is approach can also be used with the the **which()** function to find the specific element number where the condition is satisfied
+
+```{r}
+newmat
+
+# Determine which elements are > 0 and < 0.5
+
+newmat > 0 & newmat < 0.5
+    
+# Display the element VALUES that satisfy the condition
+
+newmat[newmat > 0 & newmat < 0.5]
+
+# Now display the element locations that satisfy these conditions
+
+which(newmat > 0 & newmat < 0.5)
+
+# So the 4,5, and 7 element satisfy the conditions
+
+newmat[c(4,5,7)]
+```
+
+Calculations on matrices is easy in R as there a number of functions designed to operated specifically on matrices – particularly large matrices. For example, computing the means of all the rows can be accomplished using the following approach:
+
+```{r}
+set.seed(123) # Makes the example reproducible
+
+rowMeans(newmat)  # Get the Means of the rows
+colMeans(newmat)  # Get the Means of the columns
+
+```
+
+Create a million element matrix with 10,000 rows and columns. This example will demonstrate how rapidly the functions can finish their job.
+We'll use the **system.time()** function to measure this. 
+
+```{r}
+set.seed(123)
+
+mypoismat <- matrix(rpois(1000000,2),10000,10000)
+
+system.time(rowMeans(mypoismat))
+```
+
+
+###  Lists
+
+Lists provide a way to store information of different types within a single data structure. Remember that vectors and matrices must contain data of one type at a time. For example, one cannot mix characters and numbers within a vector or matrix. Newcomers to R usually do not create lists except in two major cases: 
+
+1)	A function is being written to return heterogeneous information that requires the use of a structure capable of handling data of varying types
+ 
+2)	As a precursor to creating a a data frame, which represents a hybrid object with characteristics of a list and a matrix 
+
+In R, it is common to encounter lists in the results returned by statistical modeling functions such as regression, decision trees, and random forests. Lists are ideal for accommodating different types of information with a unified structure.  A basic example is presented here to explain how to access sub elements of a list structure:
+
+```{r}
+family1 <- list(husband="Fred", wife="Wilma", numofchildren=3,
+                 agesofkids=c(8,11,14))
+
+length(family1)  # Has 4 elements
+
+
+family1
+```
+
+Elements of the list can be accessed via their respective names. Use the "$" operator to help with this. 
+
+```{r}
+family1$agesofkids
+
+family1$agesofkids[1:2]
+
+# Bracket notation can also be used to index elements:
+# Get the first element of the list
+
+family1[1]
+
+
+# Get the third element of the list
+
+family1[3]
+
+# Get the first 3 elements of the list in reverse order
+
+family1[3:1]
+```
+
+
+Consider the following example which might, in a statistical sense, better explain the use of lists within R. This example creates a regression model using the built in data frame called mtcars. 
+
+
+```{r}
+data(mtcars)   # Load mtcars into the environment
+mylm <- lm(mpg ~ wt, data = mtcars)
+
+print(mylm)
+```
+
+But there is a lot more information contained with the result in addition to the coefficients of the equation. Use the **str()** function to help understand what is contained within the result:
+
+```{r}
+str(mylm,give.attr=F)
+```
+
+We can access terms using the "$" symbol. This allows us to pick and choose whatever elements we want. 
+
+
+```{r}
+mylm$assign
+
+# Get the first 5 residual terms
+
+mylm$residuals[1:5]
+       
+```
+
+
+
+### Data Frames
+
+A data frame is a special type of list that contains information in a format that allows for easier manipulation, reshaping, and open-ended analysis. Data frames are tightly coupled collections of variables. It is one of the more important constructs a user will encounter when using R. A data frame can be considered as an analogue to the Excel spreadsheet which holds rectangular data but is much more flexible for storing, manipulating, and analyzing information. Like a matrix, it holds rectangular data in the form of rows and columns which can then be indexed using the bracket notation which can also be used with vectors and matrices. Data frames can be constructed from existing vectors, lists, or matrices. Many times they are created by reading in comma delimited files, (CSV files). There are a number of data frames built into R that can be used to illustrate how to extract information. The **data()** function can be used to load a built-in data frame - 
+**data(mtcars)**. Determine structure. It looks like a list from this perspective since it has column / element names prefixed with a "$" symbol.
+
+
+```{r}
+str(mtcars)
+
+nrow(mtcars) # How many rows does it have ?
+
+ncol(mtcars) # How many columns are there ?
+```
+
+
+There are various ways to select, remove, or exclude rows and columns. The same bracket notation approach described in the vectors and matrix sections can be used with data frames just as easily. 
+
+
+```{r}
+# Get the first three rows
+mtcars[1:3,] 
+
+# Get the first three rows and only columns one and four
+mtcars[1:3,c(1,4)]
+```
+
+As with vectors and matrices, the bracket notation can accommodate logical expressions which are useful to find rows and columns that satisfy specified conditions:
+
+```{r}
+# Find all rows wherein the mpg is >= 30
+mtcars[mtcars$mpg >= 30.0,]
+                 
+# Find all rows wherein the mpg is >= 30 and then select columns 2 through 6
+
+mtcars[mtcars$mpg >= 30.0,2:6]
+
+
+# Find all rows where mpg >= 30 and the cylinder count is < 6
+
+mtcars[mtcars$mpg >= 30.0 & mtcars$cyl < 6,]
+```
+
+
+
+
+Data frames can be split based on the values of a categorical variable. In the case of the mtcars data frames it can be seen that all values in the am column assumes either a value of 0 or 1. The **unique()** function determines the unique values assumed by a column in a data frame
+
+```{r}
+unique(mtcars$am)
+
+# Split the data on each value of the am column (0 or 1)
+mysplit <- split(mtcars,mtcars$am)
+
+
+str(mysplit,give.attr=FALSE)
+```
+
+
+Plotting data in data frames is easy since all of the columns can easily be accessed. This is a primary benefit of using data frames. 
+
+```{r}
+plot(mpg~wt,data=mtcars,pch=19,col="blue",main="MPG vs Wt",
+     xlab="Weight in Lbs/2,000")
+grid()
+```
+
+##  Functions
+Functions are a very important part of the R language especially given that the base installation contains many pre-defined functions for the manipulation, analysis, and creation of predictive models. Before writing code to solve a problem it is wise to first determine if there isn't an existing function that already performs the desired actions. In R, the term "command" is synonymous with function. As an example, the **t.test()** command is a pre-defined function. 
+
+```{r}
+str(t.test)
+```
+
+Remember that R packages contain functions. To see all of the functions available within a given package, use the **library()** function
+
+```{r}
+library(help="stats")
+```
+
+This provides detailed information on what options / arguments the function will accept as well as what defaults exist should the user not provide a value for a given argument. Most help pages also provide worked examples designed to provide basic direction on how to use the function. Many functions have built-in examples that can be shown via the **example()** function. 
+
+```{r}
+example(mean) 
+```
+
+### Creating Functions
+
+Creating functions in R is very simple. Users communicate within R almost entirely through functions thus consider writing a function to avoid repeating the interactive entry of  commands. One significant idea associated with modern software development is "Don't Repeat Yourself" commonly abbreviated as "DRY". If the user discovers that they are repetitively entering (or copy/pasting) the same code block, then it is time to write a function.
+
+Functions allow easy reuse of code that can optionally be used in the creation of a package for distribution on CRAN. Functions are created using the **function()** directive and are stored as R objects just like anything else. Here are some guidelines to consider when creating your own functions:
+
+
+* There should be only one return statement per function 
+*	It should generally be the very last statement in the function 
+*	A function can return a vector, list, matrix, or dataframe 
+*	Returning a list provides the most generality 
+*	If the function needs to return data of different types then using a list structure is the reasonable choice. 
+
+
+Here is an example of a function that accepts a numeric vector as input and, based on the value of a function argument, will return either the maximum or minimum value of that vector. First we define the function within our environment and then we use it. 
+
+
+```{r}
+myextreme <- function(somevector, action="min") {
+
+# Function to determine the maximum or minimum of an input vector
+# Input: somevector – A numeric vector of some length
+# Output: myval – single value - either the max or min of somevector
+# action: an argument to specify the desired output – max or min 
+
+   if (action == "min") {
+      myval <- somevector[1] # Set the minimum to an arbitrary value
+      for (ii in 1:length(somevector)) {
+        if (somevector[ii] < myval) {
+          myval <- somevector[ii]
+        }
+      }    # End for
+   } else {   # If action is not "min" then we assume the "max" is wanted
+      myval <- somevector[1] # Set the maximum to an arbitrary value
+      for (ii in 1:length(somevector)) {
+        if (somevector[ii] > myval) {
+          myval <- somevector[ii]
+        }
+      }            # End for
+  }               # End If
+   return(myval)
+} 
+
+set.seed(123)
+inputvec <- rnorm(1000)  # A 1,000 element vector
+
+myextreme(inputvec,"max")
+
+myextreme(inputvec,"min")
+
+
+```
+
+
+Does this match what the built in functions for determining min and max would return ? 
+
+```{r}
+min(inputvec)
+
+
+max(inputvec)
+```
+
+
+##  S3 and S4 Objects
+
+As users become comfortable using various functions it is inevitable that they will encounter functions that can apparently handle inputs of varying types. One such function is **plot()** which, given an argument will somehow determine how best to display the data. As an example, consider the output from a linear modeling action. 
+
+```{r}
+mylm <- lm(mpg ~ .,data=mtcars)
+mylm
+
+```
+
+```{r}
+plot(mylm)
+```
+
+
+Next, consider the output of the **plot()** function when given a data frame as an argument:
+
+```{r}
+# Plot the first 4 columns of the mtcars data frame
+plot(mtcars[,1:4])
+```
+
+
+
+
+
+How does the **plot()** function know to select the appropriate plot type for an **lm()** object as well as the best plot type for a data frame ? To help answer this question, type the function name without an parentheses or arguments
+
+```{r}
+plot
+```
+
+This indicates that the **plot()** command is a function that can references other plot functions based on the type of data being passed as input. The output indicates that there are "methods" associated with the **plot()** function. The **methods()** function can then be used to see what functions can be called or "dispatched" by the **plot()** function
+
+```{r}
+methods(plot)
+```
+
+
+Given the above output, it can be seen that the **plot()** function, when provided a data frame, will detect that the object is of type "data frame" and then dispatch the **plot.data.frame()** function to display a scatter plot of the indicated variables. Correspondingly, if **plot()** is given a result from the **lm()** function, the **plot()** command will dispatch the **plot.lm()** function which understands how to display diagnostic plots relevant to regression activities. 
+
+In this context, the **plot()** function can be considered a "generic" function that, based on the type of input it is given, will dispatch other functions to actually perform the work specific to the given data type. In R, there are three object systems, S3, S4, and Reference Classes. It is important to understand that such objects exist within the typical R environment. Basic to intermediate R users will typically be consumers of such objects as opposed to developers.  Creating such objects involve considerations customarily associated with Object Oriented Programming (OOP) which are beyond the scope of the text. 
+
+## Graphics
+
+The R language provides a powerful environment for the visualization of scientific data. It provides publication quality graphics, which are fully programmable and reproducible. There are a number of useful output types (PDF, JPEG, PNG, SVG) in addition to the default high resolution on-screen graphics capability. 
+
+R Graphics can be confusing given that there are three primary user-focused graphics systems: Base, Lattice, and ggplot2. It is useful to consider that the first graphics package, Base, was the original default display package for R with the other three being added over time as the R language evolved and matured. A brief summary of each package will be helpful:
+
+### Base Graphics
+
+Base graphics is the default display package included in every basic R installation. It uses a "pen on paper" model wherein users can only add to a plot. Once an element of annotation is drawn, they cannot be removed or altered. Base contains both high and low level routines which provides flexibility in developing highly customized plots. Base graphics is well documented and there is a significant amount of user support available when using Google to find answers. 
+
+
+
+### Lattice Graphics
+
+Lattice graphics http://lattice.r-forge.r-project.org/ is an implementation of Trellis graphics for including considerations outlined in the "Visualization Data" text by William Cleveland. Lattice graphics simplifies the creation of conditioned plots with automatic creation of axes, legends, and other annotations. When specifying variable relationships to lattice plot functions, the user can specify a formula interface which is similar to the formula interface used in the creation of predictive models and aggregation commands, thus allowing the user to leverage previous knowledge. 
+
+### ggplot2 
+ 
+ggplot2 http://ggplot2.org/ is a relative new comer to R that is written as an implementation of Leland Wilkinson's "Grammar of Graphics" which attempts to decompose a visualization into semantic components designed to facilitate a better understanding of the data. By discussing the visualization in terms of accepted vocabulary, the ggplot2 package enables flexible exploration of data without the need to commit to a fixed set of specific chart types unless desired. Using the grammar, plots can be discussed in abstract terms, for example, as part of white-boarding sessions before executing a specific command. ggplot2 is part of the ”tidyverse” (http://tidyverse.org) which is a collection of R packages that share a common set of design philosophies, grammar, and data structures that seek to simplify the management, organization, and display of data. However, the ggplot2 package can be used independently of the larger tidyverse package. The package can be installed as follows:
+
+```{r eval=FALSE}
+install.packages("ggplot2")
+```
+
+
+There are some essential concepts associated with ggplot2. For reference, the built in mtcars data frame will be used to help explain them. mtcars has the following format:
+
+```{r}
+?mtcars
+```
+
+#### A Worked Example
+
+The following example displays a scatter plot of MPG vs. wt and colors the points according to the value of **am** (the transmission type) for each automobile in the data frame.  As the unique values of the am column are either 0 or 1, it is useful to convert am to a factor and apply descriptive labels. Note that converting **am** into a factor does not remove the underlying values (0 or 1). 
+
+```{r}
+data(mtcars)
+library(ggplot2)
+mtcars$am <- factor(mtcars$am, labels=c("Auto","Manual"))
+ggplot(mtcars, aes(x=wt,y=mpg,color=am)) + geom_point()
+
+```
+
+So next, let's analyze this plot in terms of ggplot2 terminology to better understand the motivations and philosophies within the package:
+
+1) Data – This the actual data frame under consideration
+
+ggplot2 requires that the input data be a data frame. Strictly speaking, ggplot2 prefers to work with "tibbles" which is the tidyverse equivalent of a native R data frame although ggplot2 will happily accommodate any R data frame. One of the design philosophies is that using data frames, as opposed to groups of individual vectors, improves reproducibility while also being easier for the end user to comprehend. Here is an example of referencing the mtcars data frame although this command will not display anything since no aesthetics or geometries are specified
+
+```{r}
+ggplot(data=mtcars)
+# same as
+ggplot(mtcars)
+```
+
+
+2) Aesthetics - Visual elements that are mapped to the data (axes, lines, colors, bars, etc) 
+
+Aesthetics allow the specification of visual components in terms of variables from the input data frame. In the case of a scatter plot (X/Y) there will be two variables, one mapped to the X axis and another mapped to the Y axis. It might also be interesting to apply color to the points based on the value of some other variable in the data frame. In this case, the resulting points will assume a color based on the values of am (0 or 1). This will also create a legend automatically to know which color corresponds to a transmission type ("Auto" or "Manual")
+
+
+```{r}
+ggplot(mtcars, aes(x=wt,y=mpg,color=am))
+```
+
+3) Scales – Any data transformations apply (e.g. scaling, logarithm, polar coordinates)
+
+Scales are useful when data is skewed or there is significant over plotting which prevents easy comprehension of the data. In this case, there are no scales being applied. 
+
+4) Geometries - The shape mapped to the aesthetic(s) 
+
+Geometries (commonly abbreviated as "geoms") provoke the actual rendering of the plot according to the specified geometry (e.g. line, point, histogram, smooth, bar, etc). The following command will generate the graph in Figure 11. Note the use of the "+" operator.
+
+```{r}
+ggplot(mtcars, aes(x=wt,y=mpg,color=am)) + geom_point()
+```
+
+Aesthetics could be also be specified within the specific geom. This is useful for when you might wish to experiment with different geometries when plotting data. That is, the original call to ggplot can be used a basis for further experimentation
+
+```{r}
+ggplot(mtcars, aes(x=wt,y=mpg,color=am)) + geom_point()
+
+# Same as 
+
+ggplot(mtcars) + geom_point(aes(x=wt,y=mpg,color=am))
+```
+
+Note that it is possible to specify additional and or different geometries which is a powerful aspect of ggplot2. There is no need to commit to a scatter plot especially during the exploratory phase of visualization. Consider the following histogram which shows that cars with a manual transmission offer better gas mileage. Note that additional layers can be added to create labels for the plot. 
+```{r}
+ ggplot(mtcars,aes(x=mpg,fill=am)) + 
+  geom_histogram(bins=8) + 
+  labs(title = "Histogram of MPG", 
+       subtitle = "Data source: 1974 Motor Trends Magazine",
+       caption = "mtcars dataframe")
+```
+
+The following example shows that multiple geometries can be applied sequentially. In this case a "smoother" is added to show a regression line on top of the scatter plot of MPG vs Wt. 
+
+```{r}
+ggplot(mtcars,aes(x=wt,y=mpg)) + geom_point() +
+               ggtitle("MPG vs Wt","mtcars data frame") +
+               geom_smooth(method="lm")
+```
+
+
+Grouping and Faceting
+
+The use of color to distinguish between values of a factor variable is a form of grouping which allows the user to consider the relationships between the categories of data. In the previous examples, the use of color has made it easier to see that cars with manual transmissions experience better gas mileage. In absence of the grouping it would be harder to make that distinction. The use of "facets" can also make distinctions between groups easier by sub setting the data into panels that share a common axis system. Facets do not require the use of color to make distinctions. 
+
+```{r}
+ggplot(mtcars,aes(x=wt,y=mpg)) + geom_point() + facet_grid(am~.)
+```
+
+The facets can be oriented differently:
+
+```{r}
+ggplot(mtcars,aes(x=wt,y=mpg)) + geom_point() + facet_grid(.~am)
+```
+
+
+It is also possible to combine grouping with facets. In this case it is easy to see that relative to automobiles with 8 cylinders, the cars with automatic transmissions experience better gas mileage than those with manual transmissions. 
+
+```{r}
+mtcars$cyl <- factor(mtcars$cyl)
+ggplot(mtcars,aes(x=wt,y=mpg,color=am)) + geom_point() + facet_grid(.~cyl)
+
+```
+
