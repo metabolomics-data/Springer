@@ -1,9 +1,6 @@
 # Code and data for the Springer book "Computational Methods and Data Analysis for Metabolomics"
 
 
-### Chapter 16
+This repository currently hosts example data and code for Chapters 14, 15 and 16.
 
-Chapter16_predictive_modeling_tg.Rmd
-
-
-*** In progress ***
+Software and links for other chapters is found at https://metabolomics-data.github.io/.
